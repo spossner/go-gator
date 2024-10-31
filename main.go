@@ -33,6 +33,7 @@ func main() {
 	cmds.register("feeds", handlerFeeds)
 	cmds.register("addfeed", withAuthentication(handlerAddFeed))
 	cmds.register("follow", withAuthentication(handlerFollow))
+	cmds.register("unfollow", withAuthentication(handlerUnfollow))
 	cmds.register("following", withAuthentication(handlerFollowing))
 
 	args := os.Args[1:]

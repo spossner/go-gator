@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/spossner/gator/internal/database"
 	"github.com/spossner/gator/internal/rss"
+	"time"
 )
 
 type command struct {
@@ -89,12 +90,52 @@ func handlerUsers(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAgg(s *state, cmd command) error {
-	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+func scrapeFeeds(s *state) error {
+	feed, err := s.db.GetNextFeedToFetch(context.Background())
 	if err != nil {
-		return fmt.Errorf("error reading rss feed: %w", err)
+		return fmt.Errorf("error identifying next feed to fetch: %w", err)
 	}
-	fmt.Println(feed)
+
+	fmt.Printf("scraping %s...\n", feed.Name)
+
+	err = s.db.MarkFeedFetched(context.Background(), feed.ID)
+	if err != nil {
+		return fmt.Errorf("error marking feed %s as fetched: %w", feed.ID, err)
+	}
+	rssFeed, err := rss.FetchFeed(context.Background(), feed.Url)
+	if err != nil {
+		return fmt.Errorf("error fetching feed %s: %w", feed.ID, err)
+	}
+	for _, item := range rssFeed.Channel.Item {
+		fmt.Printf("* %s\n", item.Title)
+	}
+	return nil
+}
+
+func handlerAgg(s *state, cmd command) error {
+	timeBetweenReqs := 30 * time.Second
+	if len(cmd.args) > 0 {
+		d, err := time.ParseDuration(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("invalid duration %s: %w", cmd.args[0], err)
+		}
+		timeBetweenReqs = d
+	}
+
+	if timeBetweenReqs < 5*time.Second {
+		return fmt.Errorf("interval %s is too fast - min 5 seconds", timeBetweenReqs)
+	}
+
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenReqs)
+
+	ticker := time.NewTicker(timeBetweenReqs)
+	defer ticker.Stop()
+	for range ticker.C {
+		err := scrapeFeeds(s)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 	return nil
 }
 
@@ -170,6 +211,30 @@ func handlerFollowing(s *state, _ command, user database.User) error {
 	for _, follow := range follows {
 		fmt.Printf("* %s\n", follow.FeedName)
 	}
+
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) == 0 {
+		return errors.New("missing feed url")
+	}
+
+	url := cmd.args[0]
+	feed, err := s.db.GetFeedByUrl(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("error fetching feed %s: %w", url, err)
+	}
+
+	follow, err := s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error removing the following of feed %s: %w", url, err)
+	}
+
+	fmt.Printf("%s is not following %s anymore\n", follow.UserName, follow.FeedName)
 
 	return nil
 }
