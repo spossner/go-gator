@@ -1,7 +1,10 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/lib/pq"
 	"github.com/spossner/gator/internal/config"
+	"github.com/spossner/gator/internal/database"
 	"log"
 	"os"
 )
@@ -11,20 +14,30 @@ func main() {
 	if err != nil {
 		log.Fatal("error reading config file", err)
 	}
-	s := &state{cfg: cfg}
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		log.Fatal("error opening database", err)
+	}
+	s := &state{
+		db:  database.New(db),
+		cfg: cfg,
+	}
 	cmds := commands{
 		list: make(map[string]handler),
 	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
 
 	args := os.Args[1:]
 	if len(args) < 1 {
 		log.Fatal("Usage...")
 	}
-	if err := cmds.run(s, command{
+	cmd := command{
 		name: args[0],
 		args: args[1:],
-	}); err != nil {
-		log.Fatal("error logging in: ", err)
+	}
+	if err := cmds.run(s, cmd); err != nil {
+		log.Fatalf("error executing %v: %v\n", cmd, err)
 	}
 }
