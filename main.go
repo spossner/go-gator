@@ -28,6 +28,12 @@ func main() {
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
 	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerUsers)
+	cmds.register("agg", handlerAgg)
+	cmds.register("feeds", handlerFeeds)
+	cmds.register("addfeed", withAuthentication(handlerAddFeed))
+	cmds.register("follow", withAuthentication(handlerFollow))
+	cmds.register("following", withAuthentication(handlerFollowing))
 
 	args := os.Args[1:]
 	if len(args) < 1 {
