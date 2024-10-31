@@ -1,5 +1,8 @@
-# database
-Launch postgres in docker using
+### database
+Launch postgres in docker using `docker compose up` within the project directory.
+Services configured in `docker-compose.yaml`
+
+Connection string
 ```
-docker run --name gator-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gator -p 5432:5432 postgres:16.4
+postgres://postgres:postgres@localhost:5432/gator?sslmode=disable
 ```
