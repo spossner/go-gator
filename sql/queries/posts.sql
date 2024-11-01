@@ -10,4 +10,5 @@ JOIN feeds f ON p.feed_id = f.id
 JOIN feed_follows ff on ff.feed_id = f.id
 WHERE ff.user_id = $1
 ORDER BY p.published_at desc
-LIMIT $2;
+LIMIT $2
+OFFSET $3;

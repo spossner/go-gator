@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/spossner/gator/internal/database"
 	"github.com/spossner/gator/internal/rss"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -266,15 +269,41 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 			limit = int32(i)
 		}
 	}
-	posts, err := s.db.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
-		UserID: user.ID,
-		Limit:  limit,
-	})
-	if err != nil {
-		return fmt.Errorf("error fetching posts for user %s: %w", user.Name, err)
+
+	var page int32 = 0
+	running := true
+	for running {
+		posts, err := s.db.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
+			UserID: user.ID,
+			Limit:  limit,
+			Offset: page * limit,
+		})
+		if err != nil {
+			return fmt.Errorf("error fetching posts for user %s: %w", user.Name, err)
+		}
+		fmt.Printf("\n\n>> PAGE %d <<\n\n", page+1)
+		for _, post := range posts {
+			fmt.Printf("** %s **\n%s\n%v\n---\n%s\n\n", strings.ToUpper(post.Name), post.Title, post.PublishedAt.Time.Format(time.DateTime), strings.TrimSpace(post.Description.String))
+		}
+		if page > 0 {
+			fmt.Print("(q)uit | (n)ext | (p)revious: ")
+		} else {
+			fmt.Print("(q)uit | (n)ext: ")
+		}
+		in := bufio.NewReader(os.Stdin)
+		c, err := in.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		switch c {
+		case 'q':
+			running = false
+		case 'n':
+			page += 1
+		case 'p':
+			page = max(page-1, 0)
+		}
 	}
-	for _, post := range posts {
-		fmt.Printf("** %s **\n%s\n%v\n---\n%s\n\n", strings.ToUpper(post.Name), post.Title, post.PublishedAt.Time.Format(time.DateTime), strings.TrimSpace(post.Description.String))
-	}
+
 	return nil
 }
