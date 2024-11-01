@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/spossner/gator/internal/database"
 	"github.com/spossner/gator/internal/rss"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -107,7 +110,24 @@ func scrapeFeeds(s *state) error {
 		return fmt.Errorf("error fetching feed %s: %w", feed.ID, err)
 	}
 	for _, item := range rssFeed.Channel.Item {
-		fmt.Printf("* %s\n", item.Title)
+		pubDate, err := time.Parse("Mon, 02 Jan 2006 15:04:05 +0000", item.PubDate)
+		if err != nil {
+			return err
+		}
+		post, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			FeedID:      feed.ID,
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: true},
+			PublishedAt: sql.NullTime{Time: pubDate, Valid: true},
+		})
+		if err != nil {
+			if !strings.HasPrefix(err.Error(), "pq: duplicate key") {
+				fmt.Printf("error persisting post %s: %v\n", item.Title, err)
+			}
+		} else {
+			fmt.Printf("* %s\n", post.Title)
+		}
 	}
 	return nil
 }
@@ -236,5 +256,25 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 
 	fmt.Printf("%s is not following %s anymore\n", follow.UserName, follow.FeedName)
 
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int32 = 2
+	if len(cmd.args) > 0 {
+		if i, err := strconv.Atoi(cmd.args[0]); err == nil {
+			limit = int32(i)
+		}
+	}
+	posts, err := s.db.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return fmt.Errorf("error fetching posts for user %s: %w", user.Name, err)
+	}
+	for _, post := range posts {
+		fmt.Printf("%s (%v)\n---------------------------------------\n%s\n\n", post.Title, post.PublishedAt.Time, strings.TrimSpace(post.Description.String))
+	}
 	return nil
 }

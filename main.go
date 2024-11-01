@@ -35,6 +35,7 @@ func main() {
 	cmds.register("follow", withAuthentication(handlerFollow))
 	cmds.register("unfollow", withAuthentication(handlerUnfollow))
 	cmds.register("following", withAuthentication(handlerFollowing))
+	cmds.register("browse", withAuthentication(handlerBrowse))
 
 	args := os.Args[1:]
 	if len(args) < 1 {
