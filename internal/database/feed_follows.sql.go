@@ -21,6 +21,7 @@ WITH ff as (
 SELECT
     ff.id, ff.user_id, ff.feed_id, ff.created_at, ff.updated_at,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from ff
 join users u on ff.user_id = u.id
@@ -39,6 +40,7 @@ type CreateFeedFollowRow struct {
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
 	FeedName  string
+	FeedUrl   string
 	UserName  string
 }
 
@@ -52,6 +54,7 @@ func (q *Queries) CreateFeedFollow(ctx context.Context, arg CreateFeedFollowPara
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.FeedName,
+		&i.FeedUrl,
 		&i.UserName,
 	)
 	return i, err
@@ -66,6 +69,7 @@ WITH ff as (
 SELECT
     ff.id, ff.user_id, ff.feed_id, ff.created_at, ff.updated_at,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from ff
          join users u on ff.user_id = u.id
@@ -84,6 +88,7 @@ type DeleteFeedFollowRow struct {
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
 	FeedName  string
+	FeedUrl   string
 	UserName  string
 }
 
@@ -97,6 +102,7 @@ func (q *Queries) DeleteFeedFollow(ctx context.Context, arg DeleteFeedFollowPara
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.FeedName,
+		&i.FeedUrl,
 		&i.UserName,
 	)
 	return i, err
@@ -106,6 +112,7 @@ const getFeedFollowsForUser = `-- name: GetFeedFollowsForUser :many
 select
     ff.id, ff.user_id, ff.feed_id, ff.created_at, ff.updated_at,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from feed_follows ff
 join users u on ff.user_id = u.id
@@ -120,6 +127,7 @@ type GetFeedFollowsForUserRow struct {
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
 	FeedName  string
+	FeedUrl   string
 	UserName  string
 }
 
@@ -139,6 +147,7 @@ func (q *Queries) GetFeedFollowsForUser(ctx context.Context, userID uuid.UUID) (
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.FeedName,
+			&i.FeedUrl,
 			&i.UserName,
 		); err != nil {
 			return nil, err

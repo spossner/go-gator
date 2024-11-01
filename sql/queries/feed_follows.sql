@@ -7,6 +7,7 @@ WITH ff as (
 SELECT
     ff.*,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from ff
 join users u on ff.user_id = u.id
@@ -21,6 +22,7 @@ WITH ff as (
 SELECT
     ff.*,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from ff
          join users u on ff.user_id = u.id
@@ -30,6 +32,7 @@ from ff
 select
     ff.*,
     f.name as feed_name,
+    f.url as feed_url,
     u.name as user_name
 from feed_follows ff
 join users u on ff.user_id = u.id

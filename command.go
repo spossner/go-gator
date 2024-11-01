@@ -206,7 +206,7 @@ func handlerFollow(s *state, cmd command, user database.User) error {
 	url := cmd.args[0]
 	feed, err := s.db.GetFeedByUrl(context.Background(), url)
 	if err != nil {
-		return fmt.Errorf("error fetching feed %s: %w", url, err)
+		return fmt.Errorf("unknown feed %s: %w", url, err)
 	}
 
 	follow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
@@ -229,7 +229,7 @@ func handlerFollowing(s *state, _ command, user database.User) error {
 	}
 
 	for _, follow := range follows {
-		fmt.Printf("* %s\n", follow.FeedName)
+		fmt.Printf("* %s: %s\n", follow.FeedName, follow.FeedUrl)
 	}
 
 	return nil
@@ -274,7 +274,7 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("error fetching posts for user %s: %w", user.Name, err)
 	}
 	for _, post := range posts {
-		fmt.Printf("%s (%v)\n---------------------------------------\n%s\n\n", post.Title, post.PublishedAt.Time, strings.TrimSpace(post.Description.String))
+		fmt.Printf("** %s **\n%s\n%v\n---\n%s\n\n", strings.ToUpper(post.Name), post.Title, post.PublishedAt.Time.Format(time.DateTime), strings.TrimSpace(post.Description.String))
 	}
 	return nil
 }

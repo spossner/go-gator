@@ -4,7 +4,7 @@ VALUES ($1, $2, $3, $4, $5)
     RETURNING *;
 
 -- name: GetPostsByUser :many
-SELECT p.*
+SELECT p.*, f.name, f.url
 FROM posts p
 JOIN feeds f ON p.feed_id = f.id
 JOIN feed_follows ff on ff.feed_id = f.id
